@@ -9,11 +9,27 @@ const Booking = require('../models/Booking');
 const getRooms = async (req, res, next) => {
   try {
     const { fromDate, toDate } = req.query;
+    const hasFromDate = fromDate !== undefined;
+    const hasToDate = toDate !== undefined;
 
-    const rooms = await Room.find().sort({ roomNumber: 1 });
+    if (hasFromDate !== hasToDate) {
+      return res.status(400).json({
+        message: 'Both fromDate and toDate are required when filtering room availability',
+      });
+    }
 
-    if (!fromDate || !toDate) {
+    if (!hasFromDate) {
+      const rooms = await Room.find().sort({ roomNumber: 1 });
       return res.status(200).json({ rooms: rooms.map((r) => r.toSafeObject()) });
+    }
+
+    if (
+      typeof fromDate !== 'string' ||
+      typeof toDate !== 'string' ||
+      !fromDate.trim() ||
+      !toDate.trim()
+    ) {
+      return res.status(400).json({ message: 'Invalid fromDate or toDate query parameters' });
     }
 
     const start = new Date(fromDate);
@@ -22,6 +38,8 @@ const getRooms = async (req, res, next) => {
     if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
       return res.status(400).json({ message: 'Invalid fromDate or toDate query parameters' });
     }
+
+    const rooms = await Room.find().sort({ roomNumber: 1 });
 
     // Check availability against both Room.currentBookings slots and active Booking records
     const overlappingBookings = await Booking.find({

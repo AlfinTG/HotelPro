@@ -25,7 +25,7 @@ The methods below are a proposed minimum to fulfill the documented user journeys
 |---|---|---|---|
 | Register | `POST /SignUp` (source path) | Public | Validate required fields and duplicate email; role assignment conflict is listed separately |
 | Login | `POST /Login` (source path) | Public | Returns JWT and safe user fields |
-| Public/available room list | `GET /GetRooms` (normalized method proposal) | Public or authenticated per chosen flow | Date filters required for availability-aware results |
+| Public/available room list | `GET /GetRooms` (normalized method proposal) | Public or authenticated per chosen flow | Supply both `fromDate` and `toDate` together for availability filtering, or supply neither for the full room list; active Booking records and embedded slots are both checked |
 | Room detail | `GET /api/rooms/:id` | Public | Proposed helper endpoint if the UI needs it |
 | Create room | `POST /api/rooms` | Admin | Source describes creating a Room from request body then saving |
 | Admin room list | `GET /api/admin/rooms` or shared rooms route | Admin | Must support All Rooms tab |
@@ -44,7 +44,9 @@ If a consistent `/api` prefix is selected for new endpoints, keep the explicitly
 - Do not return password, password hash, confirm password, JWT secrets, or card details in API responses.
 - Use consistent response codes and a stable JSON error shape, e.g. `{ "message": "..." }`, without leaking stack traces.
 - Calculate `totalDays` and `totalAmount` on the server.
-- On booking creation, verify the room exists, dates are valid, and the requested interval is available.
+- On booking creation, verify the room exists, dates are valid, and the requested interval is available in both active Booking records and embedded Room.currentBookings slots.
+- Public room responses must omit internal `currentBookings` reservation slots.
+- Room availability filters must provide both `fromDate` and `toDate`, or neither; reject partial date ranges with HTTP 400.
 - For cancellation, verify the booking exists, belongs to the authenticated user (for customers), and is not already cancelled.
 - For room creation and admin lists, enforce administrator authorization on the backend.
 

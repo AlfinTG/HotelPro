@@ -1,5 +1,6 @@
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
+const mongoose = require('mongoose');
 const Room = require('../models/Room');
 const Booking = require('../models/Booking');
 
@@ -29,12 +30,18 @@ describe('Unit: Room & Booking Models Validation', () => {
       rent: 1500,
       type: 'Deluxe',
       photos: ['https://example.com/photo.jpg'],
+      currentBookings: [{
+        bookingId: new mongoose.Types.ObjectId(),
+        fromDate: new Date('2026-12-01'),
+        toDate: new Date('2026-12-05'),
+      }],
     });
     const safe = room.toSafeObject();
     assert.equal(safe.roomNumber, '102');
     assert.equal(safe.type, 'Deluxe');
     assert.equal(safe.rent, 1500);
     assert.equal(safe.__v, undefined);
+    assert.equal(safe.currentBookings, undefined);
   });
 
   test('Booking model validates required fields', () => {

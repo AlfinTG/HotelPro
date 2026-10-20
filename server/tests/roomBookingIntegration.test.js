@@ -202,6 +202,14 @@ describe('Integration: Room & Booking Management Lifecycle', () => {
     const found2 = res.data.rooms.find((r) => r.roomNumber === testRoom2.roomNumber);
     assert.ok(found1);
     assert.ok(found2);
+    assert.equal(found1.currentBookings, undefined);
+    assert.equal(found2.currentBookings, undefined);
+  });
+
+  test('GET /api/rooms/:id omits internal currentBookings slots', async () => {
+    const res = await makeRequest(`/api/rooms/${testRoom1._id}`);
+    assert.equal(res.status, 200);
+    assert.equal(res.data.room.currentBookings, undefined);
   });
 
   // ── Booking Creation & Validation Tests ───────────────────────────────────────
@@ -322,6 +330,56 @@ describe('Integration: Room & Booking Management Lifecycle', () => {
 
     assert.equal(hasRoom1, false, 'Booked room must be excluded');
     assert.equal(hasRoom2, true, 'Available room must be included');
+  });
+
+  test('Active Booking document blocks availability and duplicate booking even when its room slot is missing', async () => {
+    const fromDate = new Date('2026-12-20T00:00:00.000Z');
+    const toDate = new Date('2026-12-24T00:00:00.000Z');
+
+    // Simulate inconsistent persisted data: active Booking exists, Room.currentBookings has no matching slot.
+    await Booking.create({
+      room: testRoom2._id,
+      user: customer1User._id,
+      roomType: testRoom2.type,
+      roomNumber: testRoom2.roomNumber,
+      fromDate,
+      toDate,
+      totalDays: 4,
+      totalAmount: testRoom2.rent * 4,
+      customerPhone: customer1User.phone,
+      customerName: customer1User.name,
+      status: 'Active',
+      paymentStatus: 'Simulated_Paid',
+    });
+
+    const availabilityRes = await makeRequest(
+      '/GetRooms?fromDate=2026-12-21&toDate=2026-12-23'
+    );
+    assert.equal(availabilityRes.status, 200);
+    assert.equal(
+      availabilityRes.data.rooms.some((room) => room._id === testRoom2._id),
+      false,
+      'Room must be excluded based on the active Booking document'
+    );
+
+    const bookingRes = await makeRequest('/api/bookings', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${customer2Token}` },
+      body: {
+        roomId: testRoom2._id,
+        fromDate: '2026-12-21',
+        toDate: '2026-12-23',
+      },
+    });
+    assert.equal(bookingRes.status, 409);
+    assert.match(bookingRes.data.message, /already booked/i);
+  });
+
+  test('GET /GetRooms rejects partial availability date filters', async () => {
+    const onlyFromDate = await makeRequest('/GetRooms?fromDate=2026-12-01');
+    const onlyToDate = await makeRequest('/GetRooms?toDate=2026-12-05');
+    assert.equal(onlyFromDate.status, 400);
+    assert.equal(onlyToDate.status, 400);
   });
 
   // ── Customer Ownership & Isolation Tests ────────────────────────────────────
