@@ -168,10 +168,13 @@ const updateRoom = async (req, res, next) => {
       room.rent = Number(rent);
     }
     if (photos !== undefined) {
-      room.photos = Array.isArray(photos) ? photos : [photos];
+      room.photos = Array.isArray(photos) ? photos : (photos ? [photos] : []);
     }
     if (description !== undefined) room.description = description;
-    if (maxCount !== undefined) room.maxCount = Number(maxCount);
+    if (maxCount !== undefined) {
+      if (Number(maxCount) < 1) return res.status(400).json({ message: 'Capacity must be at least 1 person' });
+      room.maxCount = Number(maxCount);
+    }
 
     await room.save();
 
@@ -180,8 +183,15 @@ const updateRoom = async (req, res, next) => {
       room: room.toSafeObject(),
     });
   } catch (err) {
+    if (err.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid room ID format' });
+    }
     if (err.code === 11000) {
       return res.status(409).json({ message: 'Room number already exists' });
+    }
+    if (err.name === 'ValidationError') {
+      const messages = Object.values(err.errors).map((e) => e.message);
+      return res.status(400).json({ message: messages.join(', ') });
     }
     next(err);
   }

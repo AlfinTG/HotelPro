@@ -7,9 +7,16 @@ import StatusBadge from './StatusBadge';
  *   bookings        – array of booking objects
  *   showCustomer    – boolean: include Customer column (admin view)
  *   onCancel        – function(bookingId) for cancel action (optional)
+ *   onViewDetails   – function(booking) for viewing details (optional)
  *   cancelLoading   – boolean, disables cancel buttons while processing
  */
-export default function BookingTable({ bookings, showCustomer = false, onCancel, cancelLoading = false }) {
+export default function BookingTable({
+  bookings,
+  showCustomer = false,
+  onCancel,
+  onViewDetails,
+  cancelLoading = false,
+}) {
   if (!bookings || bookings.length === 0) {
     return (
       <div className="alert alert-light text-center py-4 border">
@@ -17,6 +24,8 @@ export default function BookingTable({ bookings, showCustomer = false, onCancel,
       </div>
     );
   }
+
+  const hasAction = Boolean(onCancel || onViewDetails);
 
   return (
     <div className="table-responsive bg-white rounded shadow-sm">
@@ -32,7 +41,7 @@ export default function BookingTable({ bookings, showCustomer = false, onCancel,
             <th>Total Amount</th>
             <th>Phone</th>
             <th>Status</th>
-            {onCancel && <th>Action</th>}
+            {hasAction && <th>Action</th>}
           </tr>
         </thead>
         <tbody>
@@ -49,8 +58,16 @@ export default function BookingTable({ bookings, showCustomer = false, onCancel,
                 <strong>Room {b.roomNumber}</strong>
                 <span className="badge bg-light text-dark ms-2">{b.roomType}</span>
               </td>
-              <td className="small">{new Date(b.fromDate).toLocaleDateString()}</td>
-              <td className="small">{new Date(b.toDate).toLocaleDateString()}</td>
+              <td className="small">
+                {b.fromDate
+                  ? new Date(b.fromDate).toLocaleDateString(undefined, { timeZone: 'UTC' })
+                  : '—'}
+              </td>
+              <td className="small">
+                {b.toDate
+                  ? new Date(b.toDate).toLocaleDateString(undefined, { timeZone: 'UTC' })
+                  : '—'}
+              </td>
               <td>{b.totalDays}d</td>
               <td className="fw-semibold" style={{ color: '#004080' }}>
                 ${b.totalAmount}
@@ -59,19 +76,31 @@ export default function BookingTable({ bookings, showCustomer = false, onCancel,
               <td>
                 <StatusBadge status={b.status} />
               </td>
-              {onCancel && (
+              {hasAction && (
                 <td>
-                  {b.status === 'Active' ? (
-                    <button
-                      className="btn btn-outline-danger btn-sm"
-                      onClick={() => onCancel(b._id)}
-                      disabled={cancelLoading}
-                    >
-                      Cancel
-                    </button>
-                  ) : (
-                    <span className="text-muted small">—</span>
-                  )}
+                  <div className="d-flex gap-1 flex-wrap">
+                    {onViewDetails && (
+                      <button
+                        className="btn btn-outline-primary btn-sm"
+                        onClick={() => onViewDetails(b)}
+                        title="View Full Booking Details"
+                      >
+                        Details
+                      </button>
+                    )}
+                    {onCancel && b.status === 'Active' && (
+                      <button
+                        className="btn btn-outline-danger btn-sm"
+                        onClick={() => onCancel(b._id)}
+                        disabled={cancelLoading}
+                      >
+                        Cancel
+                      </button>
+                    )}
+                    {onCancel && !onViewDetails && b.status !== 'Active' && (
+                      <span className="text-muted small">—</span>
+                    )}
+                  </div>
                 </td>
               )}
             </tr>

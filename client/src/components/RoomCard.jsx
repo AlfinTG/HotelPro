@@ -3,16 +3,18 @@ import React from 'react';
 /**
  * Reusable room card.
  * Props:
- *   room       – room object from API
- *   onSelect   – called with room when "Book Room" is clicked (optional)
- *   selected   – boolean, highlights card when this room is selected
- *   showBook   – boolean (default true), whether to show the Book button
- *   onDelete   – called with room._id for admin delete action (optional)
+ *   room          – room object from API
+ *   onSelect      – called with room when "Book Room" is clicked (optional)
+ *   onDetails     – called with room when "View Details" is clicked (optional)
+ *   selected      – boolean, highlights card when this room is selected for booking
+ *   showBook      – boolean (default true), whether to show the Book button
+ *   onDelete      – called with room._id for admin delete action (optional)
  *   deleteLoading – boolean, disables delete button while processing
  */
 export default function RoomCard({
   room,
   onSelect,
+  onDetails,
   selected = false,
   showBook = true,
   onDelete,
@@ -33,7 +35,7 @@ export default function RoomCard({
     >
       {/* Room photo */}
       <div
-        className="d-flex align-items-center justify-content-center overflow-hidden"
+        className="d-flex align-items-center justify-content-center overflow-hidden position-relative"
         style={{ height: 180, background: '#c7d9ee' }}
       >
         {room.photos && room.photos.length > 0 ? (
@@ -43,17 +45,24 @@ export default function RoomCard({
             className="w-100"
             style={{ height: '100%', objectFit: 'cover' }}
             onError={(e) => {
-              e.target.replaceWith(
-                Object.assign(document.createElement('div'), {
-                  className: 'd-flex align-items-center justify-content-center w-100 h-100 text-muted',
-                  textContent: '📷 No Photo',
-                })
-              );
+              e.target.style.display = 'none';
+              const placeholder = e.target.parentNode;
+              placeholder.innerHTML =
+                '<span class="text-muted fw-semibold" style="color:#004080">📷 No Photo</span>';
             }}
           />
         ) : (
           <span className="text-muted fw-semibold" style={{ color: '#004080' }}>
             Room {room.roomNumber}
+          </span>
+        )}
+        {/* Photo count badge */}
+        {room.photos && room.photos.length > 1 && (
+          <span
+            className="position-absolute bottom-0 end-0 badge bg-dark bg-opacity-60 m-2"
+            style={{ fontSize: '0.7rem' }}
+          >
+            📷 {room.photos.length}
           </span>
         )}
       </div>
@@ -70,27 +79,40 @@ export default function RoomCard({
           {room.description || 'Comfortable stay with modern amenities.'}
         </p>
 
-        <div className="small text-muted mb-2">
-          <span>👥 Max guests: {room.maxCount}</span>
+        <div className="small text-muted mb-3 d-flex gap-3">
+          <span>👥 Max {room.maxCount} guest{room.maxCount !== 1 ? 's' : ''}</span>
         </div>
 
         <div className="d-flex justify-content-between align-items-center pt-2 border-top mt-auto">
           <div>
-            <span className="h5 fw-bold" style={{ color: '#004080' }}>
+            <span className="h5 fw-bold mb-0" style={{ color: '#004080' }}>
               ${room.rent}
             </span>
-            <span className="text-muted small"> / day</span>
+            <span className="text-muted small"> / night</span>
           </div>
 
-          <div className="d-flex gap-1">
+          <div className="d-flex gap-1 flex-wrap justify-content-end">
+            {/* View Details button */}
+            {onDetails && (
+              <button
+                className="btn btn-sm btn-outline-secondary"
+                onClick={() => onDetails(room)}
+              >
+                Details
+              </button>
+            )}
+
+            {/* Book button */}
             {showBook && onSelect && (
               <button
                 className={`btn btn-sm ${selected ? 'btn-success' : 'btn-outline-primary'}`}
                 onClick={() => onSelect(room)}
               >
-                {selected ? '✓ Selected' : 'Book Room'}
+                {selected ? '✓ Selected' : 'Book'}
               </button>
             )}
+
+            {/* Admin delete button */}
             {onDelete && (
               <button
                 className="btn btn-sm btn-outline-danger"

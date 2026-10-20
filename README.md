@@ -129,7 +129,7 @@ net start MongoDB
 mongod --dbpath /path/to/data/db
 ```
 
-### 6. Start the servers
+### 7. Start the servers
 
 **Terminal 1 — backend (runs on http://localhost:8001):**
 
@@ -168,11 +168,28 @@ curl http://localhost:8001/health
 
 ---
 
+## Running tests
+
+All tests run from the **repository root** with a single command. The backend suite runs with `--test-concurrency=1` to prevent shared-database race conditions:
+
+```bash
+npm test
+```
+
+Expected output:
+
+```
+ℹ tests 113
+ℹ pass  113
+ℹ fail  0
+```
+
+---
+
 ## Production build
 
 ```bash
-cd client
-npm run build
+npm --prefix client run build
 ```
 
 Build output is placed in `client/dist/` (excluded from Git).
@@ -227,26 +244,29 @@ All specification documents are in the [`DOCUMENTS/`](./DOCUMENTS/) directory:
 | Login always fails | Check email normalisation and password hash comparison (Stage B) |
 | Admin tabs empty | Verify admin account seeded (`npm run seed:admin` in `server/`) and protected endpoints accessible |
 | Room list empty | Run `npm run seed:rooms` from `server/` to populate the demo room catalogue |
+| Tests fail with concurrency errors | Ensure you run `npm test` from the **root** (uses `--test-concurrency=1`) |
+| Last-admin demotion blocked | The system prevents the sole admin from being demoted — add a second admin first |
 
 ---
 
 ## Implementation status
 
-| Stage | Description | Status |
+| Stage / Phase | Description | Status |
 |---|---|---|
 | A | Scaffold + infrastructure | ✅ Completed |
 | B | Authentication (User model, JWT) | ✅ Completed |
 | C | Rooms and bookings | ✅ Completed |
 | D | Full frontend UI | ✅ Completed |
-| E | Verification and submission | 🔄 In progress |
-| Ph1 | Room availability & response safety hardening | ✅ Completed (uncommitted) |
-| Ph2-P1 | Idempotent demo room seeding (`seed:rooms`) | ✅ Completed (uncommitted) |
+| Ph1 | Room availability & response safety hardening | ✅ Completed |
+| Ph2 | Customer experience — room discovery, booking workflow, history categories | ✅ Completed |
+| Ph3 | Admin operations — live metrics, room/booking/user management | ✅ Completed |
+| Ph4 | Final quality audit — last-admin safeguard, 113 passing tests, submission readiness | ✅ Completed |
 
 ---
 
 ## Submission
 
 - **GitHub repository:** https://github.com/AlfinTG/HotelPro
-- **Demo video:** *(to be recorded after Stage E)*
+- **Demo video:** *(to be recorded — see checklist below)*
 
 See [`DOCUMENTS/DEMO_AND_SUBMISSION.md`](./DOCUMENTS/DEMO_AND_SUBMISSION.md) for the full submission checklist.
