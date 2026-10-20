@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../utils/api';
-import RoomCard from '../components/RoomCard';
+import RoomCarousel from '../components/RoomCarousel';
 import { useAuth } from '../context/AuthContext';
 
 /**
@@ -22,8 +22,8 @@ export default function Home() {
       .get('/GetRooms')
       .then((res) => {
         if (!cancelled) {
-          // Show up to 3 featured rooms on the home page
-          setFeaturedRooms((res.data.rooms || []).slice(0, 3));
+          // Show up to 8 featured rooms in the home-page carousel
+          setFeaturedRooms((res.data.rooms || []).slice(0, 8));
         }
       })
       .catch((err) => {
@@ -121,13 +121,11 @@ export default function Home() {
               No rooms are currently listed. Check back soon!
             </div>
           ) : (
-            <div className="row g-4">
-              {featuredRooms.map((room) => (
-                <div key={room._id} className="col-md-6 col-lg-4">
-                  <RoomCard room={room} showBook={false} />
-                </div>
-              ))}
-            </div>
+            <RoomCarousel
+              rooms={featuredRooms}
+              isAuthenticated={isAuthenticated}
+              isAdmin={isAdmin}
+            />
           )}
 
           {featuredRooms.length > 0 && !isAdmin && (

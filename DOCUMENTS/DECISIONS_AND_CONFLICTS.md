@@ -53,7 +53,7 @@ Security safeguards such as protecting secrets and not persisting raw card/CVV d
 - **Source evidence:** the User entity uses `type`; feature/user-flow instructions mention a required User Type selector with `Admin/Ordinary`; backend screenshot includes a role-like field, and other text says Admin/Customer.
 - **Security constraint:** public signup must not grant administrator privileges solely because the client posts `type: "admin"`.
 - **Proposed implementation:** canonical field `role`, values `admin` and `customer`; public registration creates a customer by default. A trusted seed/provisioning method creates the admin account. If the course evaluator requires a visible selector, preserve the field visually only after owner review and ensure the backend still does not trust an arbitrary admin choice.
-- **Status:** material decision for owner confirmation. Do not quietly claim this behavior exactly matches the source's role-selector wording.
+- **Status:** **Implemented (Phase 2-P3, 2026-10-20).** `client/src/pages/Register.jsx` now displays a visible "Account Type" radio selector with Customer/Ordinary and Admin options, as required by the PRD and source user-flow documents. Selecting Admin shows an informational disclaimer explaining that public registration cannot grant administrative privileges. The `userType` field is included in the `POST /SignUp` request body (Option B — explicit and testable). `server/controllers/authController.js` enforces `role: 'customer'` unconditionally and ignores any client-supplied `role`, `userType`, or `type` field. Three dedicated server-integration tests verify this security boundary: (1) `userType: "admin"` in body creates a customer account, (2) `role: "admin"` in body creates a customer account, (3) normal customer registration with `userType: "customer"` continues to work. The existing combined privilege-escalation test also covers this boundary. No backend schema changes were required.
 
 ### D-07 — User profile fields
 
@@ -103,7 +103,7 @@ Security safeguards such as protecting secrets and not persisting raw card/CVV d
 ## 4. Must-confirm decisions before final build
 
 1. Confirm display name: HotelPro (recommended) or Roomly.
-2. Confirm whether the registration UI must visibly show an Admin/Ordinary type selector. Regardless, backend must not trust a public role field to grant admin permissions.
+2. ~~Confirm whether the registration UI must visibly show an Admin/Ordinary type selector.~~ **Resolved (Phase 2-P3):** selector is implemented. Regardless, backend must not trust a public role field to grant admin permissions — enforced.
 3. Confirm room inventory meaning: one record per physical room or one record per room type with `count` inventory.
 4. Confirm if the course explicitly requires real payment integration or simulated payment is acceptable.
 

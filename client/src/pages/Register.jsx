@@ -9,6 +9,7 @@ export default function Register() {
     phone: '',
     password: '',
     c_password: '',
+    userType: 'customer', // visible selector only — backend always creates 'customer'
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -35,12 +36,16 @@ export default function Register() {
     setLoading(true);
 
     try {
+      // Option B: userType is included in the request so that the server-side
+      // security behavior is explicit and testable.  The backend ignores it and
+      // always assigns role: 'customer' regardless of this value.
       await api.post('/SignUp', {
         name: form.name.trim(),
         email: form.email.trim(),
         phone: form.phone.trim(),
         password: form.password,
         c_password: form.c_password,
+        userType: form.userType,
       });
 
       navigate('/login', {
@@ -59,8 +64,10 @@ export default function Register() {
         <div className="col-md-7 col-lg-6">
           <div className="card shadow-sm border-0 p-4">
             <div className="text-center mb-4">
-              <h2 className="fw-bold" style={{ color: '#004080' }}>Create an Account</h2>
-              <p className="text-muted small">Register as a guest to book rooms and manage reservations</p>
+              <h2 className="fw-bold" style={{ color: '#004080' }}>Create Your Account</h2>
+              <p className="text-muted small">
+                Join HotelPro to browse rooms and manage your reservations.
+              </p>
             </div>
 
             {error && (
@@ -154,6 +161,59 @@ export default function Register() {
                     autoComplete="new-password"
                   />
                 </div>
+              </div>
+
+              {/* ── User Type selector (R-03 / D-06) ──────────────────────────────
+                  The source User Flow and PRD require a visible "User Type" field
+                  with Customer/Ordinary and Admin options (DECISIONS_AND_CONFLICTS.md D-06).
+                  The backend ignores this field and always creates a customer account.
+                  See server/controllers/authController.js register() for enforcement.
+              ─────────────────────────────────────────────────────────────────── */}
+              <div className="mb-3">
+                <fieldset>
+                  <legend className="form-label small fw-semibold mb-2">Account Type</legend>
+                  <div className="d-flex gap-4">
+                    <div className="form-check">
+                      <input
+                        className="form-check-input"
+                        type="radio"
+                        name="userType"
+                        id="typeCustomer"
+                        value="customer"
+                        checked={form.userType === 'customer'}
+                        onChange={handleChange}
+                      />
+                      <label className="form-check-label" htmlFor="typeCustomer">
+                        Customer / Ordinary
+                      </label>
+                    </div>
+                    <div className="form-check">
+                      <input
+                        className="form-check-input"
+                        type="radio"
+                        name="userType"
+                        id="typeAdmin"
+                        value="admin"
+                        checked={form.userType === 'admin'}
+                        onChange={handleChange}
+                      />
+                      <label className="form-check-label" htmlFor="typeAdmin">
+                        Admin
+                      </label>
+                    </div>
+                  </div>
+                </fieldset>
+
+                {form.userType === 'admin' && (
+                  <div
+                    className="alert alert-info py-2 mt-2 small mb-0"
+                    role="note"
+                  >
+                    ℹ️ Selecting <strong>Admin</strong> during public registration does not
+                    grant administrative privileges. Admin accounts must be provisioned
+                    separately by an existing administrator.
+                  </div>
+                )}
               </div>
 
               <button

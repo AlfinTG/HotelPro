@@ -71,6 +71,11 @@ describe('Integration: Authentication & Authorization Flow', () => {
             testEmailDuplicate,
             testEmailAdmin,
             `normalized.${runId}@example.com`,
+            // Phase 2-P3 user-type selector tests (inline deleteOne handles
+            // cleanup per test, but include here as a safety net)
+            `usertype.admin.${runId}@example.com`,
+            `role.admin.${runId}@example.com`,
+            `normal.customer.${runId}@example.com`,
           ],
         },
       });
@@ -196,6 +201,91 @@ describe('Integration: Authentication & Authorization Flow', () => {
     assert.equal(dbRecord.role, 'customer');
 
     await User.deleteOne({ email: maliciousEmail });
+  });
+
+  // ── Phase 2-P3: User-Type Selector security tests ────────────────────────────
+  // These focused tests verify the D-06 security requirement: the client-supplied
+  // userType field (from the registration form's Account Type selector) must never
+  // grant administrator privileges, even when explicitly set to 'admin'.
+
+  test('POST /SignUp with userType:"admin" in body still creates a customer account', async () => {
+    const email = `usertype.admin.${runId}@example.com`;
+    const res = await makeRequest('/SignUp', {
+      method: 'POST',
+      body: {
+        name: 'UserType Admin Attempt',
+        email,
+        password: testPassword,
+        c_password: testPassword,
+        phone: '5550001111',
+        userType: 'admin', // from the UI selector — must be ignored by backend
+      },
+    });
+
+    assert.equal(res.status, 201, 'registration should succeed');
+    assert.equal(res.data.user.role, 'customer', 'response role must be customer');
+    assert.notEqual(res.data.user.role, 'admin', 'response must not report admin');
+
+    const dbRecord = await User.findOne({ email });
+    assert.ok(dbRecord, 'user must be persisted in database');
+    assert.equal(dbRecord.role, 'customer', 'DB role must be customer');
+
+    await User.deleteOne({ email });
+  });
+
+  test('POST /SignUp with role:"admin" in body still creates a customer account', async () => {
+    const email = `role.admin.${runId}@example.com`;
+    const res = await makeRequest('/SignUp', {
+      method: 'POST',
+      body: {
+        name: 'Role Field Admin Attempt',
+        email,
+        password: testPassword,
+        c_password: testPassword,
+        phone: '5550002222',
+        role: 'admin', // crafted privilege-escalation attempt
+      },
+    });
+
+    assert.equal(res.status, 201, 'registration should succeed');
+    assert.equal(res.data.user.role, 'customer', 'response role must be customer');
+
+    const dbRecord = await User.findOne({ email });
+    assert.ok(dbRecord, 'user must be persisted in database');
+    assert.equal(dbRecord.role, 'customer', 'DB role must be customer');
+
+    await User.deleteOne({ email });
+  });
+
+  test('Normal customer registration still works correctly after userType selector changes', async () => {
+    const email = `normal.customer.${runId}@example.com`;
+    const res = await makeRequest('/SignUp', {
+      method: 'POST',
+      body: {
+        name: 'Normal Customer',
+        email,
+        password: testPassword,
+        c_password: testPassword,
+        phone: '5550003333',
+        userType: 'customer', // explicit customer selection from the UI selector
+      },
+    });
+
+    assert.equal(res.status, 201, 'normal registration must succeed');
+    assert.equal(res.data.message, 'Registration successful');
+    assert.equal(res.data.user.role, 'customer', 'role must be customer');
+    assert.equal(res.data.user.email, email, 'email must match');
+    assert.equal(res.data.user.passwordHash, undefined, 'hash must not be returned');
+
+    // Verify login works for the new customer
+    const loginRes = await makeRequest('/Login', {
+      method: 'POST',
+      body: { email, password: testPassword },
+    });
+    assert.equal(loginRes.status, 200, 'login must succeed');
+    assert.equal(loginRes.data.user.role, 'customer', 'login response role must be customer');
+
+    await User.deleteOne({ email });
   });
 
   // ── Login Tests ───────────────────────────────────────────────────────────────
