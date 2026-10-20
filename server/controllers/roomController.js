@@ -9,8 +9,9 @@ const Booking = require('../models/Booking');
 const getRooms = async (req, res, next) => {
   try {
     const { fromDate, toDate } = req.query;
-    const hasFromDate = fromDate !== undefined;
-    const hasToDate = toDate !== undefined;
+    const isProvided = (val) => val !== undefined && (typeof val !== 'string' || val.trim() !== '');
+    const hasFromDate = isProvided(fromDate);
+    const hasToDate = isProvided(toDate);
 
     if (hasFromDate !== hasToDate) {
       return res.status(400).json({

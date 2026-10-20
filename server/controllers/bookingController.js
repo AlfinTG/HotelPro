@@ -30,6 +30,10 @@ const createBooking = async (req, res, next) => {
       return res.status(400).json({ message: 'roomId, fromDate, and toDate are required' });
     }
 
+    if (!mongoose.Types.ObjectId.isValid(roomId)) {
+      return res.status(400).json({ message: 'Invalid room ID format' });
+    }
+
     const start = new Date(fromDate);
     const end = new Date(toDate);
 
@@ -172,6 +176,10 @@ const cancelBooking = async (req, res, next) => {
 
     if (!bookingId) {
       return res.status(400).json({ message: 'bookingId is required' });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+      return res.status(400).json({ message: 'Invalid booking ID format' });
     }
 
     const booking = await Booking.findById(bookingId);
