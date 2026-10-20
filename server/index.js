@@ -30,10 +30,29 @@ let dbConnected = false;
 
 // ── Middleware ─────────────────────────────────────────────────────────────────
 
-const allowedOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
+// Configure allowed CORS origins:
+// Supports comma-separated origins via CLIENT_ORIGIN (e.g. "https://hotel.example.com").
+// When CLIENT_ORIGIN is not provided or set to localhost:5173, allows both localhost and 127.0.0.1
+// on port 5173 for local development without wildcard or credential compromise.
+const defaultLocalOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+const configuredOrigins = process.env.CLIENT_ORIGIN
+  ? process.env.CLIENT_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean)
+  : defaultLocalOrigins;
+
+// If explicitly configured for local development, ensure both localhost and 127.0.0.1 work seamlessly
+const allowedOrigins = configuredOrigins.includes('http://localhost:5173') && !configuredOrigins.includes('http://127.0.0.1:5173')
+  ? [...configuredOrigins, 'http://127.0.0.1:5173']
+  : configuredOrigins;
+
 app.use(
   cors({
-    origin: allowedOrigin,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
   })
 );

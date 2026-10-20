@@ -71,7 +71,50 @@ cd client
 npm install
 ```
 
-### 5. Start MongoDB
+### 5. Provision the administrator account and demo rooms
+
+Before starting the servers, seed the database with the admin account and demo room catalogue. Run these from the `server/` directory:
+
+```bash
+cd server
+
+# Create the administrator account (reads credentials from server/.env)
+npm run seed:admin
+
+# Insert 8 demo rooms (Standard × 2, Deluxe × 2, Non-Deluxe × 2, Suite × 2)
+# Safe to run repeatedly — rooms that already exist are skipped automatically
+npm run seed:rooms
+
+# Or run both in one command
+npm run seed
+```
+
+> - **Admin credentials** come from the `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME`, and `ADMIN_PHONE` variables in `server/.env`. Never commit real credentials.
+> - **Demo rooms** use only public Unsplash URLs — no external accounts required.
+> - Re-running either command on a populated database is safe: existing records are **never** overwritten or deleted.
+
+Expected output for `seed:rooms` (first run):
+```
+[Room Seeding] Checking 8 demo room definitions…
+[Room Seeding]   OK    Room 101 (Standard, $2500/night) inserted.
+…
+[Room Seeding]   Inserted : 8
+[Room Seeding]   Skipped  : 0 (already existed)
+[Room Seeding]   Failed   : 0
+[Room Seeding] Done.
+```
+
+Expected output (subsequent runs — idempotent):
+```
+[Room Seeding]   SKIP  Room 101 — already exists in database.
+…
+[Room Seeding]   Inserted : 0 | Skipped : 8 | Failed : 0
+[Room Seeding] Done.
+```
+
+---
+
+### 6. Start MongoDB
 
 Ensure MongoDB is running locally before starting the backend:
 
@@ -161,7 +204,10 @@ All specification documents are in the [`DOCUMENTS/`](./DOCUMENTS/) directory:
 | `PORT` | Express server port | `8001` |
 | `MONGO_URI` | MongoDB connection string | `mongodb://127.0.0.1:27017/hotel` |
 | `JWT_SECRET` | JWT signing secret — keep private | *(none — required)* |
-| `CLIENT_ORIGIN` | Allowed CORS origin | `http://localhost:5173` |
+| `ADMIN_NAME` | Administrator display name | `System Administrator` |
+| `ADMIN_EMAIL` | Admin login email — **required for seeding** | *(none — set in .env)* |
+| `ADMIN_PASSWORD` | Admin password — **required for seeding** | *(none — set in .env)* |
+| `ADMIN_PHONE` | Admin phone number | `1234567890` |
 
 ### Frontend (`client/.env`)
 
@@ -179,7 +225,8 @@ All specification documents are in the [`DOCUMENTS/`](./DOCUMENTS/) directory:
 | Frontend can't reach backend | Confirm `VITE_API_BASE_URL` matches backend port; check CORS `CLIENT_ORIGIN` |
 | `npm install` fails | Verify Node.js version ≥ 16; delete `node_modules/` and retry |
 | Login always fails | Check email normalisation and password hash comparison (Stage B) |
-| Admin tabs empty | Verify admin account seeded and protected endpoints accessible (Stage B+) |
+| Admin tabs empty | Verify admin account seeded (`npm run seed:admin` in `server/`) and protected endpoints accessible |
+| Room list empty | Run `npm run seed:rooms` from `server/` to populate the demo room catalogue |
 
 ---
 
@@ -191,7 +238,9 @@ All specification documents are in the [`DOCUMENTS/`](./DOCUMENTS/) directory:
 | B | Authentication (User model, JWT) | ✅ Completed |
 | C | Rooms and bookings | ✅ Completed |
 | D | Full frontend UI | ✅ Completed |
-| E | Verification and submission | ✅ Completed |
+| E | Verification and submission | 🔄 In progress |
+| Ph1 | Room availability & response safety hardening | ✅ Completed (uncommitted) |
+| Ph2-P1 | Idempotent demo room seeding (`seed:rooms`) | ✅ Completed (uncommitted) |
 
 ---
 

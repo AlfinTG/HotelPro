@@ -35,7 +35,10 @@ const register = async (req, res, next) => {
     // Hash password
     const passwordHash = await hashPassword(password);
 
-    // Enforce role: 'customer' regardless of any client-supplied role or userType
+    // Enforce role: 'customer' regardless of any client-supplied role, userType,
+    // type, isAdmin, or any other privilege-escalation attempt in the request body.
+    // This is the sole authoritative enforcement point for public registration.
+    // See DECISIONS_AND_CONFLICTS.md D-06 and SECURITY.md §3.
     const user = new User({
       name: name.trim(),
       email: normalizedEmail,

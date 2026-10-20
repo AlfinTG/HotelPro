@@ -155,4 +155,29 @@ describe('Stage D Frontend & API Integration Audit', () => {
     assert.ok(htmlRoomsActive.includes('tab-pane fade active'));
     assert.ok(htmlRoomsActive.includes('RoomsContent'));
   });
+
+  it('CORS Policy: Allows both localhost:5173 and 127.0.0.1:5173, rejects unauthorized origins', async () => {
+    // Test localhost:5173 origin
+    const resLocalhost = await makeRequest('OPTIONS', '/health', null, {
+      Origin: 'http://localhost:5173',
+      'Access-Control-Request-Method': 'GET',
+    });
+    // In Express cors middleware, a preflight request from an allowed origin responds with status 204
+    assert.ok([200, 204].includes(resLocalhost.status));
+
+    // Test 127.0.0.1:5173 origin
+    const res127 = await makeRequest('OPTIONS', '/health', null, {
+      Origin: 'http://127.0.0.1:5173',
+      'Access-Control-Request-Method': 'GET',
+    });
+    assert.ok([200, 204].includes(res127.status));
+
+    // Test unauthorized origin
+    const resEvil = await makeRequest('OPTIONS', '/health', null, {
+      Origin: 'http://malicious-site.example.com',
+      'Access-Control-Request-Method': 'GET',
+    });
+    // CORS middleware returns error for unauthorized origin on OPTIONS/request
+    assert.ok(resEvil.status >= 400 || resEvil.status === 500);
+  });
 });

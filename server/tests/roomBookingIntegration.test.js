@@ -228,6 +228,32 @@ describe('Integration: Room & Booking Management Lifecycle', () => {
     assert.equal(res.status, 401);
   });
 
+  test('POST /api/bookings rejects invalid room ID format with 400', async () => {
+    const res = await makeRequest('/api/bookings', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${customer1Token}` },
+      body: {
+        roomId: 'invalid-room-id-format',
+        fromDate: '2026-12-01',
+        toDate: '2026-12-05',
+      },
+    });
+    assert.equal(res.status, 400);
+    assert.match(res.data.message, /invalid room id format/i);
+  });
+
+  test('POST /cancelbooking rejects invalid booking ID format with 400', async () => {
+    const res = await makeRequest('/cancelbooking', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${customer1Token}` },
+      body: {
+        bookingId: 'invalid-booking-id-format',
+      },
+    });
+    assert.equal(res.status, 400);
+    assert.match(res.data.message, /invalid booking id format/i);
+  });
+
   test('POST /api/bookings rejects nonexistent room with 404', async () => {
     const res = await makeRequest('/api/bookings', {
       method: 'POST',
@@ -378,8 +404,29 @@ describe('Integration: Room & Booking Management Lifecycle', () => {
   test('GET /GetRooms rejects partial availability date filters', async () => {
     const onlyFromDate = await makeRequest('/GetRooms?fromDate=2026-12-01');
     const onlyToDate = await makeRequest('/GetRooms?toDate=2026-12-05');
+    const emptyToDate = await makeRequest('/GetRooms?fromDate=2026-12-01&toDate=');
+    const emptyFromDate = await makeRequest('/GetRooms?fromDate=&toDate=2026-12-05');
     assert.equal(onlyFromDate.status, 400);
     assert.equal(onlyToDate.status, 400);
+    assert.equal(emptyToDate.status, 400);
+    assert.equal(emptyFromDate.status, 400);
+  });
+
+  test('GET /GetRooms returns full room list when neither date filter is provided or both are empty', async () => {
+    const resNoParams = await makeRequest('/GetRooms');
+    const resEmptyParams = await makeRequest('/GetRooms?fromDate=&toDate=');
+    assert.equal(resNoParams.status, 200);
+    assert.equal(resEmptyParams.status, 200);
+    assert.equal(resEmptyParams.data.rooms.length, resNoParams.data.rooms.length);
+  });
+
+  test('GET /GetRooms rejects invalid date ranges and malformed dates', async () => {
+    const invertedRes = await makeRequest('/GetRooms?fromDate=2026-12-05&toDate=2026-12-01');
+    const sameDayRes = await makeRequest('/GetRooms?fromDate=2026-12-05&toDate=2026-12-05');
+    const malformedRes = await makeRequest('/GetRooms?fromDate=not-a-date&toDate=2026-12-05');
+    assert.equal(invertedRes.status, 400);
+    assert.equal(sameDayRes.status, 400);
+    assert.equal(malformedRes.status, 400);
   });
 
   // ── Customer Ownership & Isolation Tests ────────────────────────────────────
