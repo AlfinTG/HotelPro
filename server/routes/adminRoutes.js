@@ -1,0 +1,15 @@
+const express = require('express');
+const router = express.Router();
+const { getAllBookings } = require('../controllers/bookingController');
+const { getRooms } = require('../controllers/roomController');
+const { getAllUsers } = require('../controllers/adminController');
+const { authMiddleware, adminMiddleware } = require('../middleware/auth');
+
+// All admin routes require authentication and admin role
+router.use(authMiddleware, adminMiddleware);
+
+router.get('/bookings', getAllBookings);
+router.get('/rooms', getRooms);
+router.get('/users', getAllUsers);
+
+module.exports = router;
