@@ -61,6 +61,21 @@ const createBooking = async (req, res, next) => {
     const totalDays = calculateDays(start, end);
     const totalAmount = totalDays * room.rent;
 
+    // Treat persisted active Booking records as an independent source of truth.
+    // This protects against stale/missing Room.currentBookings slots.
+    const activeBooking = await Booking.findOne({
+      room: room._id,
+      status: 'Active',
+      fromDate: { $lt: end },
+      toDate: { $gt: start },
+    }).select('_id');
+
+    if (activeBooking) {
+      return res.status(409).json({
+        message: `Room ${room.roomNumber} is already booked for the selected dates`,
+      });
+    }
+
     const newBookingId = new mongoose.Types.ObjectId();
 
     // Atomic conditional slot reservation on the physical Room document

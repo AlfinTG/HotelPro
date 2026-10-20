@@ -22,14 +22,16 @@ export default function RoomList() {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState(null);
 
-  const fetchRooms = useCallback(async (start = fromDate, end = toDate) => {
+  const fetchRooms = useCallback(async (start = '', end = '') => {
     setLoading(true);
     setError(null);
     try {
       let url = '/GetRooms';
       const params = new URLSearchParams();
-      if (start) params.append('fromDate', start);
-      if (end) params.append('toDate', end);
+      if (start && end) {
+        params.append('fromDate', start);
+        params.append('toDate', end);
+      }
       const queryString = params.toString();
       if (queryString) {
         url += `?${queryString}`;
@@ -42,14 +44,18 @@ export default function RoomList() {
     } finally {
       setLoading(false);
     }
-  }, [fromDate, toDate]);
+  }, []);
 
   useEffect(() => {
-    fetchRooms();
+    fetchRooms('', '');
   }, [fetchRooms]);
 
   const handleSearch = (e) => {
     e.preventDefault();
+    if (Boolean(fromDate) !== Boolean(toDate)) {
+      setError('Please select both check-in and check-out dates, or clear both dates.');
+      return;
+    }
     if (fromDate && toDate && new Date(fromDate) >= new Date(toDate)) {
       setError('Check-out date must be strictly after Check-in date.');
       return;

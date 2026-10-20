@@ -61,6 +61,7 @@ const roomSchema = new mongoose.Schema(
 roomSchema.methods.toSafeObject = function () {
   const obj = this.toObject();
   delete obj.__v;
+  delete obj.currentBookings;
   return obj;
 };
 
